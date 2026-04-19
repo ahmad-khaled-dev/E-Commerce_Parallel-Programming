@@ -32,4 +32,12 @@ public class InventoryController : ControllerBase
         var inventory = await _inventoryService.UpdateAsync(productId, request);
         return Ok(inventory);
     }
+
+
+    [HttpPost("{productId:int}/decrease")]
+    public async Task<IActionResult> Decrease(int productId, DecreaseInventoryRequest request)
+    {
+        var inventory = await _inventoryService.DecreaseAsync(productId, request);
+        return Ok(inventory);
+    }
 }

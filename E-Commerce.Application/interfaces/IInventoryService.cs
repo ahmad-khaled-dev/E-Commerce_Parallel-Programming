@@ -6,4 +6,5 @@ public interface IInventoryService
 {
     Task<InventoryDto?> GetByProductIdAsync(int productId);
     Task<InventoryDto> UpdateAsync(int productId, UpdateInventoryRequest request);
+    Task<InventoryDto> DecreaseAsync(int productId, DecreaseInventoryRequest request);
 }

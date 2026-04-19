@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Commerce.Infrastructure.Services
 {
-     
-     
+
+
     public class InventoryService : IInventoryService
     {
         private readonly AppDbContext _context;
@@ -31,6 +31,37 @@ namespace E_Commerce.Infrastructure.Services
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<InventoryDto> DecreaseAsync(int productId, DecreaseInventoryRequest request)
+        {
+            if (request.Amount <= 0)
+                throw new ArgumentException("Amount must be greater than zero.");
+
+            var inventory = await _context.Inventories
+                .Include(x => x.Product)
+                .FirstOrDefaultAsync(x => x.ProductId == productId);
+
+            if (inventory is null)
+                throw new InvalidOperationException("Inventory not found.");
+
+
+            if (inventory.Quantity < request.Amount)
+                throw new InvalidOperationException("Insufficient stock.");
+
+            inventory.Quantity -= request.Amount;
+
+            await Task.Delay(3000);
+
+
+            await _context.SaveChangesAsync();
+
+            return new InventoryDto
+            {
+                ProductId = inventory.ProductId,
+                ProductName = inventory.Product.Name,
+                Quantity = inventory.Quantity
+
+            };
+        }
         public async Task<InventoryDto> UpdateAsync(int productId, UpdateInventoryRequest request)
         {
             if (request.Quantity < 0)
@@ -43,9 +74,17 @@ namespace E_Commerce.Infrastructure.Services
             if (inventory is null)
                 throw new InvalidOperationException("Inventory not found.");
 
+
+
             inventory.Quantity = request.Quantity;
 
+
+            await Task.Delay(3000);
+
             await _context.SaveChangesAsync();
+
+
+
 
             return new InventoryDto
             {
