@@ -1,0 +1,11 @@
+
+
+
+to run this scripts
+k6 run test.js
+
+
+//run project 
+dotnet run --project E-Commerce.Api
+
+

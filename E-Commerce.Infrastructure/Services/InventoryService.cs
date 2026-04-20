@@ -31,37 +31,7 @@ namespace E_Commerce.Infrastructure.Services
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<InventoryDto> DecreaseAsync(int productId, DecreaseInventoryRequest request)
-        {
-            if (request.Amount <= 0)
-                throw new ArgumentException("Amount must be greater than zero.");
-
-            var inventory = await _context.Inventories
-                .Include(x => x.Product)
-                .FirstOrDefaultAsync(x => x.ProductId == productId);
-
-            if (inventory is null)
-                throw new InvalidOperationException("Inventory not found.");
-
-
-            if (inventory.Quantity < request.Amount)
-                throw new InvalidOperationException("Insufficient stock.");
-
-            inventory.Quantity -= request.Amount;
-
-            await Task.Delay(3000);
-
-
-            await _context.SaveChangesAsync();
-
-            return new InventoryDto
-            {
-                ProductId = inventory.ProductId,
-                ProductName = inventory.Product.Name,
-                Quantity = inventory.Quantity
-
-            };
-        }
+    
         public async Task<InventoryDto> UpdateAsync(int productId, UpdateInventoryRequest request)
         {
             if (request.Quantity < 0)
@@ -93,5 +63,88 @@ namespace E_Commerce.Infrastructure.Services
                 Quantity = inventory.Quantity
             };
         }
+
+
+
+        public async Task<InventoryDto> DecreaseUnsafeAsync(int productId, DecreaseInventoryRequest request)
+        {
+            if (request.Amount <= 0)
+                throw new ArgumentException("Amount must be greater than zero.");
+
+            var inventory = await _context.Inventories
+                .AsNoTracking()
+                .Include(x => x.Product)
+                .FirstOrDefaultAsync(x => x.ProductId == productId);
+
+            if (inventory is null)
+                throw new InvalidOperationException("Inventory not found.");
+
+            if (inventory.Quantity < request.Amount)
+                throw new InvalidOperationException("Insufficient stock.");
+
+            var newQuantity = inventory.Quantity - request.Amount;
+
+            await Task.Delay(3000);
+
+            // تحديث خام بدون RowVersion check
+            var affectedRows = await _context.Database.ExecuteSqlInterpolatedAsync($@"
+        UPDATE Inventories
+        SET Quantity = {newQuantity}
+        WHERE ProductId = {productId}");
+
+            if (affectedRows == 0)
+                throw new InvalidOperationException("Inventory update failed.");
+
+            return new InventoryDto
+            {
+                ProductId = inventory.ProductId,
+                ProductName = inventory.Product.Name,
+                Quantity = newQuantity,
+                RowVersion = inventory.RowVersion.Length > 0
+                    ? Convert.ToBase64String(inventory.RowVersion)
+                    : string.Empty
+            };
+        }
+
+        public async Task<InventoryDto> DecreaseSafeAsync(int productId, DecreaseInventoryRequest request)
+        {
+            if (request.Amount <= 0)
+                throw new ArgumentException("Amount must be greater than zero.");
+
+            var inventory = await _context.Inventories
+                .Include(x => x.Product)
+                .FirstOrDefaultAsync(x => x.ProductId == productId);
+
+            if (inventory is null)
+                throw new InvalidOperationException("Inventory not found.");
+
+            if (inventory.Quantity < request.Amount)
+                throw new InvalidOperationException("Insufficient stock.");
+
+            inventory.Quantity -= request.Amount;
+
+            await Task.Delay(3000);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException("Concurrency conflict occurred. Please retry.");
+            }
+
+            return new InventoryDto
+            {
+                ProductId = inventory.ProductId,
+                ProductName = inventory.Product.Name,
+                Quantity = inventory.Quantity,
+                RowVersion = Convert.ToBase64String(inventory.RowVersion)
+            };
+        }
+
     }
 }
+ 
+
+ 

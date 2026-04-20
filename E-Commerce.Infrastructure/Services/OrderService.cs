@@ -47,6 +47,10 @@ namespace E_Commerce.Infrastructure.Services
                     throw new InvalidOperationException($"Insufficient stock for product '{item.Product.Name}'.");
             }
 
+            Console.WriteLine($"BEFORE SAVE: User {request.UserId}, Time = {DateTime.Now}");
+
+            await Task.Delay(3000);
+
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
@@ -78,8 +82,10 @@ namespace E_Commerce.Infrastructure.Services
 
                 _context.CartItems.RemoveRange(cart.CartItems);
 
+                Console.WriteLine($"ORDER CREATED: User {request.UserId}, OrderId = {order.Id}, Time = {DateTime.Now}");
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
 
                 return await GetByIdInternalAsync(order.Id)
                        ?? throw new InvalidOperationException("Order created but could not be loaded.");

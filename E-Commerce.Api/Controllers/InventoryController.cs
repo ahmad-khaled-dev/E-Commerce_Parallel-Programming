@@ -34,10 +34,27 @@ public class InventoryController : ControllerBase
     }
 
 
-    [HttpPost("{productId:int}/decrease")]
-    public async Task<IActionResult> Decrease(int productId, DecreaseInventoryRequest request)
+
+    [HttpPost("{productId:int}/decrease-unsafe")]
+    public async Task<IActionResult> DecreaseUnsafe(int productId, DecreaseInventoryRequest request)
     {
-        var inventory = await _inventoryService.DecreaseAsync(productId, request);
+        var inventory = await _inventoryService.DecreaseUnsafeAsync(productId, request);
         return Ok(inventory);
     }
+
+    [HttpPost("{productId:int}/decrease-safe")]
+    public async Task<IActionResult> DecreaseSafe(int productId, DecreaseInventoryRequest request)
+    {
+        try
+        {
+            var inventory = await _inventoryService.DecreaseSafeAsync(productId, request);
+            return Ok(inventory);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Concurrency conflict"))
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
 }
+
+ 

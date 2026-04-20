@@ -21,7 +21,7 @@ namespace E_Commerce.Infrastructure.Persistence
         public DbSet<Product> Products => Set<Product>();
 
         public DbSet<Inventory> Inventories => Set<Inventory>();
-
+         
         public DbSet<Cart> Carts => Set<Cart>();
         public DbSet<CartItem> CartItems => Set<CartItem>();
         public DbSet<Order> Orders => Set<Order>();
@@ -87,7 +87,7 @@ namespace E_Commerce.Infrastructure.Persistence
             });
         }
 
-        private static void ConfigureInventory(ModelBuilder modelBuilder)
+         private static void ConfigureInventory(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Inventory>(entity =>
             {
@@ -95,6 +95,9 @@ namespace E_Commerce.Infrastructure.Persistence
 
                 entity.Property(x => x.Quantity)
                     .IsRequired();
+
+                entity.Property(x => x.RowVersion)
+                .IsRowVersion();
 
                 entity.HasOne(x => x.Product)
                     .WithOne(x => x.Inventory)

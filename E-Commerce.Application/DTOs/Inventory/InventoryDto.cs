@@ -14,5 +14,8 @@ namespace E_Commerce.Application.DTOs.Inventory
         public string ProductName { get; set; } = string.Empty;
 
         public int Quantity { get; set; }
+    
+        
+        public string RowVersion { get; set; }  =string.Empty;
     }
 }

@@ -17,6 +17,8 @@ namespace E_Commerce.Domain.Entities
         public int Quantity { get; set; }
          
         public Product Product { get; set; } = null!;
- 
+
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     }
 }

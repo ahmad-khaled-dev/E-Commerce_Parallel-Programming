@@ -88,7 +88,7 @@ public class LoggingInventoryServiceDecorator : IInventoryService
         }
     }
 
-    public async Task<InventoryDto> DecreaseAsync(int productId, DecreaseInventoryRequest request)
+    public async Task<InventoryDto> DecreaseUnsafeAsync(int productId, DecreaseInventoryRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
 
@@ -99,7 +99,7 @@ public class LoggingInventoryServiceDecorator : IInventoryService
 
         try
         {
-            var result = await _inner.DecreaseAsync(productId, request);
+            var result = await _inner.DecreaseUnsafeAsync(productId, request);
 
             stopwatch.Stop();
 
@@ -124,4 +124,41 @@ public class LoggingInventoryServiceDecorator : IInventoryService
             throw;
         }
     }
+    public async Task<InventoryDto> DecreaseSafeAsync(int productId, DecreaseInventoryRequest request)
+    {
+        var stopwatch = Stopwatch.StartNew();
+
+        _logger.LogInformation(
+            "READ -> Starting DecreaseAsync for ProductId={ProductId}, Amount={Amount}",
+            productId,
+            request.Amount);
+
+        try
+        {
+            var result = await _inner.DecreaseSafeAsync(productId, request);
+
+            stopwatch.Stop();
+
+            _logger.LogInformation(
+                "WRITE -> Completed DecreaseAsync for ProductId={ProductId} in {ElapsedMilliseconds} ms. FinalQuantity={Quantity}",
+                productId,
+                stopwatch.ElapsedMilliseconds,
+                result.Quantity);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+
+            _logger.LogError(
+                ex,
+                "Error in DecreaseAsync for ProductId={ProductId} after {ElapsedMilliseconds} ms",
+                productId,
+                stopwatch.ElapsedMilliseconds);
+
+            throw;
+        }
+    }
+ 
 }
