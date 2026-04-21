@@ -9,29 +9,39 @@ namespace E_Commerce.Infrastructure.Services
     {
 
         private readonly AppDbContext _context;
-
+        private static readonly SemaphoreSlim _getAllProductsSemaphore = new SemaphoreSlim(5, 5);
         public ProductService(AppDbContext context)
         {
-            _context = context;
+            _context = context; 
         }
 
         public async Task<List<ProductDto>> GetAllAsync()
         {
+            await _getAllProductsSemaphore.WaitAsync();
 
-            return await _context.Products
-                 .AsNoTracking()
-                 .Include(p => p.Inventory)
-                 .Select(p => new ProductDto
-                 {
-                     Id = p.Id,
-                     Name = p.Name,
-                     Description= p.Description,
-                     IsActive= p.IsActive,
-                     Price = p.Price,
-                     Quantity=p.Inventory !=null ?p.Inventory.Quantity : 0,
-                 }).ToListAsync();
+            try
+            {
+                await Task.Delay(6000);  
+
+                return await _context.Products
+                    .AsNoTracking()
+                    .Include(p => p.Inventory)
+                    .Select(p => new ProductDto
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Description = p.Description,
+                        Price = p.Price,
+                        IsActive = p.IsActive,
+                        Quantity = p.Inventory != null ? p.Inventory.Quantity : 0
+                    })
+                    .ToListAsync();
+            }
+            finally
+            {
+                _getAllProductsSemaphore.Release();
+            }
         }
-
         public async Task<ProductDto?> GetByIdAsync(int id)
         {
 
