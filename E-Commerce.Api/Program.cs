@@ -1,5 +1,6 @@
 using E_Commerce.Application.interfaces;
 using E_Commerce.Application.Interfaces;
+using E_Commerce.Infrastructure.BackgroundJobs;
 using E_Commerce.Infrastructure.Persistence;
 using E_Commerce.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,18 @@ builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// ── Requirement 3: Asynchronous Queues ───────────────────────────────────────
+// Singleton so the same Channel is shared between producers (controllers)
+// and the consumer (NotificationWorker background service).
+builder.Services.AddSingleton<INotificationQueue, NotificationQueue>();
+builder.Services.AddHostedService<NotificationWorker>();
+
+// ── Requirement 4: Batch Processing ─────────────────────────────────────────
+// Scoped processor (needs AppDbContext). DailySalesBatchJob creates its
+// own scope per run via IServiceScopeFactory to avoid captive-dependency issues.
+builder.Services.AddScoped<IBatchSalesProcessor, BatchSalesProcessor>();
+builder.Services.AddHostedService<DailySalesBatchJob>();
 
 var app = builder.Build();
 
