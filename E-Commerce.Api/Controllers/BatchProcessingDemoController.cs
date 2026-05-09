@@ -1,36 +1,46 @@
-using E_Commerce.Application.interfaces;
 using Microsoft.AspNetCore.Mvc;
-
+using E_Commerce.Application.interfaces;
+using E_Commerce.Infrastructure.Persistence; // لكي يتعرف على AppDbContext
+using E_Commerce.Domain.Entities;      // لكي يتعرف على كلاس Order
+using E_Commerce.Domain.Enums;
 namespace E_Commerce.Api.Controllers
 {
-    /// <summary>
-    /// Requirement 4 — Batch Processing
-    ///
-    /// Two endpoints that compare processing all daily orders at once
-    /// versus processing them in bounded chunks for better performance.
-    ///
-    /// A DailySalesBatchJob (BackgroundService) also runs the SOLUTION
-    /// approach automatically every 60 seconds — check application logs.
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class BatchProcessingDemoController : ControllerBase
     {
         private readonly IBatchSalesProcessor _processor;
+        private readonly AppDbContext _context; // أضفنا هذا السطر
 
-        public BatchProcessingDemoController(IBatchSalesProcessor processor)
+        // قمنا بتعديل الـ Constructor لاستقبال الـ context
+        public BatchProcessingDemoController(IBatchSalesProcessor processor, AppDbContext context)
         {
             _processor = processor;
+            _context = context;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // CASE 1 — PROBLEM
-        // All orders for the requested date are loaded into RAM in one query.
-        // Safe for small datasets; dangerous at scale (OutOfMemoryException,
-        // long-held DB connection, no thread yield).
-        //
-        // Example: GET /api/batchprocessingdemo/without-batching?date=2026-05-08
-        // ─────────────────────────────────────────────────────────────────────
+        [HttpPost("seed-orders")]
+        public async Task<IActionResult> SeedOrders([FromQuery] int count = 100)
+        {
+            // نتحقق من وجود مستخدم افتراضي أو نستخدم UserId = 1 كما في الـ Seeder
+            var orders = new List<Order>();
+            for (int i = 0; i < count; i++)
+            {
+                orders.Add(new Order
+                {
+                    UserId = 1,
+                    CreatedAt = DateTime.Now,
+                    TotalAmount = (i + 1) * 15.5m,
+                    OrderStatus = (OrderStatus)1 // Completed
+                });
+            }
+
+            _context.Orders.AddRange(orders);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = $"{count} orders seeded successfully!" });
+        }
+
         [HttpGet("without-batching")]
         public async Task<IActionResult> WithoutBatching([FromQuery] DateTime? date)
         {
@@ -39,14 +49,6 @@ namespace E_Commerce.Api.Controllers
             return Ok(report);
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // CASE 2 — SOLUTION
-        // Orders are fetched page-by-page (Skip / Take).
-        // Memory stays bounded to `chunkSize` rows; Task.Yield() between
-        // chunks keeps the thread-pool responsive under concurrent load.
-        //
-        // Example: GET /api/batchprocessingdemo/with-batching?date=2026-05-08&chunkSize=10
-        // ─────────────────────────────────────────────────────────────────────
         [HttpGet("with-batching")]
         public async Task<IActionResult> WithBatching(
             [FromQuery] DateTime? date,
