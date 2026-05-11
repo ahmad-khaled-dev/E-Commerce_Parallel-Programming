@@ -31,7 +31,7 @@ namespace E_Commerce.Infrastructure.Services
                 .FirstOrDefaultAsync();
         }
 
-    
+
         public async Task<InventoryDto> UpdateAsync(int productId, UpdateInventoryRequest request)
         {
             if (request.Quantity < 0)
@@ -86,7 +86,6 @@ namespace E_Commerce.Infrastructure.Services
 
             await Task.Delay(3000);
 
-            // تحديث خام بدون RowVersion check
             var affectedRows = await _context.Database.ExecuteSqlInterpolatedAsync($@"
         UPDATE Inventories
         SET Quantity = {newQuantity}
@@ -145,6 +144,5 @@ namespace E_Commerce.Infrastructure.Services
 
     }
 }
- 
 
- 
+

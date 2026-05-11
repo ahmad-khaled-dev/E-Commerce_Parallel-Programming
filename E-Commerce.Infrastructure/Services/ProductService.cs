@@ -9,7 +9,7 @@ namespace E_Commerce.Infrastructure.Services
     {
 
         private readonly AppDbContext _context;
-        private static readonly SemaphoreSlim _getAllProductsSemaphore = new SemaphoreSlim(5, 5);
+        private static readonly SemaphoreSlim _getAllProductsSemaphore = new SemaphoreSlim(3, 3);
         public ProductService(AppDbContext context)
         {
             _context = context; 
@@ -21,7 +21,7 @@ namespace E_Commerce.Infrastructure.Services
 
             try
             {
-                await Task.Delay(6000);  
+                await Task.Delay(6000);
 
                 return await _context.Products
                     .AsNoTracking()
@@ -41,6 +41,7 @@ namespace E_Commerce.Infrastructure.Services
             {
                 _getAllProductsSemaphore.Release();
             }
+
         }
         public async Task<ProductDto?> GetByIdAsync(int id)
         {
