@@ -29,9 +29,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddScoped<AppDbContext>(sp =>
+    sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<IProductService>(sp =>
@@ -41,7 +43,7 @@ builder.Services.AddScoped<IProductService>(sp =>
 
     return new LoggingProductServiceDecorator(inner, logger);
 });
-builder.Services.AddScoped<ICartService, CartService>(); 
+builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<InventoryService>();
@@ -65,7 +67,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
- 
+
 
 app.UseAuthorization();
 
