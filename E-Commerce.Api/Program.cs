@@ -5,6 +5,7 @@ using E_Commerce.Infrastructure.Persistence;
 using E_Commerce.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using StackExchange.Redis;
 
 
 
@@ -53,8 +54,8 @@ builder.Services.AddScoped<IInventoryService>(sp =>
     return new LoggingInventoryServiceDecorator(inner, logger);
 });
 
-
-
+builder.Services.AddStackExchangeRedisCache(options => options.Configuration = "localhost:6379");
+builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect("localhost:6379"));
 
 var app = builder.Build();
 
