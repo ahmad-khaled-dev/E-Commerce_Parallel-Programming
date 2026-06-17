@@ -98,10 +98,7 @@ namespace E_Commerce.Infrastructure.Services
             {
                 ProductId = inventory.ProductId,
                 ProductName = inventory.Product.Name,
-                Quantity = newQuantity,
-                RowVersion = inventory.RowVersion.Length > 0
-                    ? Convert.ToBase64String(inventory.RowVersion)
-                    : string.Empty
+                Quantity = newQuantity
             };
         }
 
@@ -137,8 +134,7 @@ namespace E_Commerce.Infrastructure.Services
             {
                 ProductId = inventory.ProductId,
                 ProductName = inventory.Product.Name,
-                Quantity = inventory.Quantity,
-                RowVersion = Convert.ToBase64String(inventory.RowVersion)
+                Quantity = inventory.Quantity
             };
         }
 
