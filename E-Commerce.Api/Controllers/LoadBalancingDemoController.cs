@@ -1,5 +1,6 @@
 using System.Net.Http;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 
 namespace E_Commerce.Api.Controllers;
 
@@ -24,24 +25,31 @@ public class LoadBalancingDemoController : ControllerBase
     [HttpPost("distribute-requests")]
     public async Task<IActionResult> DistributeRequests([FromQuery] int count)
     {
-        var results = new List<object>();
-
-        for (int i = 1; i <= count; i++)
+        var serverUrls = new string[count];
+        for (int i = 0; i < count; i++)
         {
             var serverIndex = Interlocked.Increment(ref _roundRobinIndex) % Servers.Length;
             if (serverIndex < 0) serverIndex += Servers.Length;
-            var serverUrl = Servers[serverIndex];
+            serverUrls[i] = Servers[serverIndex];
+        }
 
-            var client = _httpClientFactory.CreateClient();
-            var response = await client.GetStringAsync(serverUrl);
-
-            results.Add(new
+        var tasks = new Task<object>[count];
+        for (int i = 0; i < count; i++)
+        {
+            var taskNumber = i + 1;
+            var serverUrl = serverUrls[i];
+            tasks[i] = Task.Run(async () =>
             {
-                taskNumber = i,
-                routedTo = serverUrl,
-                response
+                var port = new Uri(serverUrl).Port;
+                Log.Information("Request {TaskNumber} STARTED at {Timestamp} on port {Port}", taskNumber, DateTime.UtcNow, port);
+                var client = _httpClientFactory.CreateClient();
+                var response = await client.GetStringAsync(serverUrl);
+                Log.Information("Request {TaskNumber} COMPLETED at {Timestamp} on port {Port}", taskNumber, DateTime.UtcNow, port);
+                return (object)new { taskNumber, routedTo = serverUrl, response };
             });
         }
+
+        var results = (await Task.WhenAll(tasks)).ToList();
 
         return Ok(new
         {
